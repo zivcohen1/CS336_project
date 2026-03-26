@@ -1,0 +1,23 @@
+# dune exec bin/main.exe
+# OCAMLPARAM: unset
+# Shared cache: enabled-except-user-rules
+# Shared cache location:
+# C:\Users\zmact\AppData\Local\Microsoft\Windows\INetCache\dune\db
+# Workspace root: "C:\\Users\\zmact\\prog\\ocaml\\CS336_project\\fileIO"
+# Auto-detected concurrency: 12
+# Dune context:
+#  { name = "default"
+#  ; kind = "default"
+#  ; profile = Dev
+#  ; merlin = true
+#  ; fdo_target_exe = None
+#  ; build_dir = In_build_dir "default"
+#  ; instrument_with = []
+#  }
+$ C:\Users\zmact\AppData\Local\opam\default\bin\ocamlc.opt.exe -config > C:\Users\zmact\AppData\Local\Temp\dune_4d59fe_output
+$ (cd _build/default && C:\Users\zmact\AppData\Local\opam\default\bin\ocamlc.opt.exe -short-paths -keep-locs -warn-error +a -w -53 -w -49 -nopervasives -nostdlib -g -bin-annot -bin-annot-occurrences -I lib/.fileIO.objs/byte -no-alias-deps -opaque -o lib/.fileIO.objs/byte/fileIO.cmo -c -impl lib/fileIO.ml-gen)
+$ (cd _build/default && C:\Users\zmact\AppData\Local\opam\default\bin\ocamlc.opt.exe -short-paths -keep-locs -warn-error +a -g -bin-annot -bin-annot-occurrences -I bin/.main.eobjs/byte -I lib/.fileIO.objs/byte -no-alias-deps -opaque -o bin/.main.eobjs/byte/dune__exe__Main.cmi -c -intf bin/main.mli)
+$ (cd _build/default && C:\Users\zmact\AppData\Local\opam\default\bin\ocamlopt.opt.exe -short-paths -keep-locs -warn-error +a -w -53 -w -49 -nopervasives -nostdlib -g -I lib/.fileIO.objs/byte -I lib/.fileIO.objs/native -cmi-file lib/.fileIO.objs/byte/fileIO.cmi -no-alias-deps -opaque -o lib/.fileIO.objs/native/fileIO.cmx -c -impl lib/fileIO.ml-gen)
+$ (cd _build/default && C:\Users\zmact\AppData\Local\opam\default\bin\ocamlopt.opt.exe -short-paths -keep-locs -warn-error +a -g -I bin/.main.eobjs/byte -I bin/.main.eobjs/native -I lib/.fileIO.objs/byte -I lib/.fileIO.objs/native -cmi-file bin/.main.eobjs/byte/dune__exe__Main.cmi -no-alias-deps -opaque -o bin/.main.eobjs/native/dune__exe__Main.cmx -c -impl bin/main.ml)
+$ (cd _build/default && C:\Users\zmact\AppData\Local\opam\default\bin\ocamlopt.opt.exe -short-paths -keep-locs -warn-error +a -g -a -o lib/fileIO.cmxa lib/.fileIO.objs/native/fileIO.cmx)
+$ (cd _build/default && C:\Users\zmact\AppData\Local\opam\default\bin\ocamlopt.opt.exe -short-paths -keep-locs -warn-error +a -g -o bin/main.exe lib/fileIO.cmxa bin/.main.eobjs/native/dune__exe__Main.cmx)
