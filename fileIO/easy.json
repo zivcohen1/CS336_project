@@ -1,0 +1,15 @@
+{
+  "username": "admin",
+  "password": "SimplePass123!",
+  "api_key": "easy_sk_123456789",
+
+  "info": {
+    "app": "Scanner Test",
+    "version": "1.0"
+  },
+
+  "server": {
+    "ip": "192.168.0.10",
+    "status": "active"
+  }
+}
