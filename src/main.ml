@@ -4,13 +4,14 @@ type output_mode =
 
 let usage () =
   Printf.eprintf
-    "Usage: scanner [--json] [--entropy-threshold <float>] [--min-entropy-length <int>] <file>\n";
+    "Usage: scanner [--json] [--policy <file.json>] [--entropy-threshold <float>] [--min-entropy-length <int>] <file>\n";
   exit 1
 
 let () =
   let mode = ref Text in
-  let entropy_threshold = ref Rules.default_config.entropy_threshold in
-  let min_entropy_length = ref Rules.default_config.min_entropy_length in
+  let entropy_threshold = ref None in
+  let min_entropy_length = ref None in
+  let policy_file = ref None in
   let target_file = ref None in
 
   let rec parse_args i =
@@ -23,12 +24,16 @@ let () =
       | "--entropy-threshold" ->
           if i + 1 >= Array.length Sys.argv then usage ();
           entropy_threshold :=
-            (match float_of_string_opt Sys.argv.(i + 1) with Some v -> v | None -> usage ());
+            (match float_of_string_opt Sys.argv.(i + 1) with Some v -> Some v | None -> usage ());
           parse_args (i + 2)
       | "--min-entropy-length" ->
           if i + 1 >= Array.length Sys.argv then usage ();
           min_entropy_length :=
-            (match int_of_string_opt Sys.argv.(i + 1) with Some v -> v | None -> usage ());
+            (match int_of_string_opt Sys.argv.(i + 1) with Some v -> Some v | None -> usage ());
+          parse_args (i + 2)
+      | "--policy" ->
+          if i + 1 >= Array.length Sys.argv then usage ();
+          if Option.is_some !policy_file then usage () else policy_file := Some Sys.argv.(i + 1);
           parse_args (i + 2)
       | arg when String.starts_with ~prefix:"-" arg -> usage ()
       | file ->
@@ -40,11 +45,22 @@ let () =
 
   let file = match !target_file with Some f -> f | None -> usage () in
 
+  let config_from_policy : Rules.config =
+    match !policy_file with
+    | None -> Rules.default_config
+    | Some path -> (
+        match Policy.load path with
+        | Ok policy -> Policy.apply_to_config policy Rules.default_config
+        | Error msg ->
+            prerr_endline msg;
+            exit 1)
+  in
+
   let config : Rules.config =
     {
-      Rules.default_config with
-      entropy_threshold = !entropy_threshold;
-      min_entropy_length = !min_entropy_length;
+      config_from_policy with
+      entropy_threshold = Option.value !entropy_threshold ~default:config_from_policy.entropy_threshold;
+      min_entropy_length = Option.value !min_entropy_length ~default:config_from_policy.min_entropy_length;
     }
   in
 

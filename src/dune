@@ -1,4 +1,4 @@
 (executable
  (name main)
- (modules Ast Parser Types Entropy Rules JsonScanner YamlScanner Scanner Report Main)
+ (modules Ast Parser Types Entropy Rules JsonScanner YamlScanner Scanner Report Policy Main)
  (libraries yojson yaml))

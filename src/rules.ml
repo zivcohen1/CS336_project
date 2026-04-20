@@ -4,6 +4,9 @@ type config = {
   entropy_threshold : float;
   min_entropy_length : int;
   ignored_values : string list;
+  extra_secret_patterns : string list;
+  extra_misconfig_true_keys : string list;
+  extra_misconfig_false_keys : string list;
 }
 
 let default_config =
@@ -11,6 +14,9 @@ let default_config =
     entropy_threshold = 3.8;
     min_entropy_length = 10;
     ignored_values = [ "test"; "example"; "sample"; "dummy"; "changeme"; "placeholder" ];
+    extra_secret_patterns = [];
+    extra_misconfig_true_keys = [];
+    extra_misconfig_false_keys = [];
   }
 
 let normalize_key s =
@@ -40,7 +46,7 @@ let is_ignored_value config value =
   let v = string_lower_trim value in
   List.exists (fun i -> v = i) config.ignored_values
 
-let secret_patterns = [ "password"; "passwd"; "apikey"; "token"; "secret" ]
+let default_secret_patterns = [ "password"; "passwd"; "apikey"; "token"; "secret" ]
 
 let classify_secret_key normalized =
   if contains_substring normalized "password" || contains_substring normalized "passwd" then Some "Hardcoded password"
@@ -63,8 +69,14 @@ let value_as_string = function
 let make_finding ~category ~issue_type ~key ~path ~line ~risk ~recommendation ~explanation ~severity ~source =
   { category; issue_type; key; path; line; risk; recommendation; explanation; severity; source }
 
-let looks_secretish_key normalized =
-  List.exists (contains_substring normalized) secret_patterns
+let looks_secretish_key config normalized =
+  List.exists (contains_substring normalized) default_secret_patterns
+  || List.exists (contains_substring normalized) config.extra_secret_patterns
+
+let is_custom_secret_key config normalized =
+  List.exists (contains_substring normalized) config.extra_secret_patterns
+
+let key_in_list normalized keys = List.exists (fun k -> normalized = k) keys
 
 let high_entropy_finding ~source ~path ~key ~line ~entropy_value =
   make_finding
@@ -84,8 +96,12 @@ let analyze_key_value ~config ~source ~path ~key ~value ~line =
   let findings = ref [] in
 
   (* Context-aware hardcoded secret rule *)
-  (match (classify_secret_key normalized, value_as_string value) with
-  | Some issue_type, Some v when String.length (String.trim v) >= 4 && not (is_ignored_value config v) ->
+  (match value_as_string value with
+  | Some v
+    when String.length (String.trim v) >= 4
+         && not (is_ignored_value config v)
+         && (Option.is_some (classify_secret_key normalized) || is_custom_secret_key config normalized) ->
+      let issue_type = Option.value (classify_secret_key normalized) ~default:"Hardcoded secret" in
       findings :=
         make_finding
           ~category:Secret
@@ -145,13 +161,41 @@ let analyze_key_value ~config ~source ~path ~key ~value ~line =
           ~severity:High
           ~source
         :: !findings
+  | _, Some true when key_in_list normalized config.extra_misconfig_true_keys ->
+      findings :=
+        make_finding
+          ~category:Misconfiguration
+          ~issue_type:"Insecure setting enabled"
+          ~key
+          ~path
+          ~line
+          ~risk:"Policy-marked insecure flag is enabled."
+          ~recommendation:"Disable this setting for production unless there is a documented exception."
+          ~explanation:"Custom policy marked this key as unsafe when true."
+          ~severity:High
+          ~source
+        :: !findings
+  | _, Some false when key_in_list normalized config.extra_misconfig_false_keys ->
+      findings :=
+        make_finding
+          ~category:Misconfiguration
+          ~issue_type:"Security validation disabled"
+          ~key
+          ~path
+          ~line
+          ~risk:"Policy-marked verification or protection flag is disabled."
+          ~recommendation:"Enable this setting to restore required security checks."
+          ~explanation:"Custom policy marked this key as unsafe when false."
+          ~severity:High
+          ~source
+        :: !findings
   | _ -> ());
 
   (* High-entropy detection *)
   (match value_as_string value with
   | Some s when String.length s >= config.min_entropy_length && not (is_ignored_value config s) ->
       let e = Entropy.entropy s in
-      let strong_signal = looks_secretish_key normalized || e >= config.entropy_threshold +. 0.6 in
+      let strong_signal = looks_secretish_key config normalized || e >= config.entropy_threshold +. 0.6 in
       if e >= config.entropy_threshold && strong_signal then
         findings := high_entropy_finding ~source ~path ~key ~line ~entropy_value:e :: !findings
   | _ -> ());

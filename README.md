@@ -36,14 +36,41 @@ It detects:
 
 ## Run
 
-- Preferred wrapper (matches `./scanner ...` style):
+- Preferred wrapper (macOS/Linux, matches `./scanner ...` style):
   - `./scanner path/to/file.imp`
   - `./scanner path/to/config.json`
   - `./scanner path/to/config.yaml`
+- Windows `cmd` wrapper:
+  - `scanner.cmd path\\to\\file.imp`
+  - `scanner.cmd path\\to\\config.json`
+  - `scanner.cmd path\\to\\config.yaml`
+- Direct cross-platform dune command:
+  - `opam exec -- dune exec src/main.exe -- path/to/file.imp`
 - Direct dune executable:
   - `dune exec src/main.exe -- path/to/file.imp`
 - JSON output:
   - `./scanner --json path/to/file.json`
+  - `scanner.cmd --json path\\to\\file.json`
+
+## Custom Policy File
+
+You can provide a custom JSON policy file to extend scanner behavior:
+
+- `--policy <file.json>`
+
+Supported policy fields:
+
+- `entropy_threshold` (number)
+- `min_entropy_length` (integer)
+- `ignored_values` (string array)
+- `secret_patterns` (string array): additional key patterns treated as secret-like
+- `misconfig_true_keys` (string array): keys flagged when set to `true`
+- `misconfig_false_keys` (string array): keys flagged when set to `false`
+
+Example:
+
+- `scanner.cmd --policy examples\\policy.json examples\\sample.yaml`
+- `opam exec -- dune exec src/main.exe -- --policy examples/policy.json examples/sample.yaml`
 
 ## Optional tuning flags
 
