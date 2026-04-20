@@ -3,7 +3,7 @@ open Ast
 exception Parse_error of int * string
 
 let read_file path =
-  let ch = open_in path in
+  let ch = open_in_bin path in
   Fun.protect
     ~finally:(fun () -> close_in ch)
     (fun () ->
