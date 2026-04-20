@@ -1,25 +1,61 @@
-TEAM 1 - FILE I/O
+# AST-Based Secret & Misconfiguration Scanner (OCaml)
 
-Matt, Ziv, Alex 
+A modular static scanner that analyzes:
 
-- Make a sample text file with a secret. 
-- Read contents of sample text file.
-- Use simple string pattern matching.
-- If no secret is found in a file, then output a success message
-    - example: If file contains api_key = ..., warn the user
-- If a secret is found, then output a warning message
+- IMP-Core style files (`.imp`)
+- JSON (`.json`)
+- YAML (`.yaml`, `.yml`)
 
-- Test by modifying the contents of this one file
-- Get logic working for one file first, before doing multiple files at once
+It detects:
 
+- Hardcoded secrets (`password`, `token`, `api_key`, etc.)
+- High-entropy strings (likely secrets)
+- Insecure configurations (`debug=true`, `ssl_verify=false`, `allow_insecure=true`)
 
-TEAM 2 - Entropy Analysis
+## Architecture
 
-Zac, James
+- `src/ast.ml` — IMP-Core AST (`Assign`, literals)
+- `src/parser.ml` — IMP parser with line tracking
+- `src/jsonScanner.ml` — recursive JSON traversal with path extraction
+- `src/yamlScanner.ml` — recursive YAML traversal with path extraction
+- `src/entropy.ml` — Shannon entropy implementation
+- `src/rules.ml` — context-aware security/misconfiguration rules and thresholds
+- `src/scanner.ml` — orchestrates parser/scanners + rule engine
+- `src/report.ml` — text and JSON reporting
+- `src/main.ml` — CLI entrypoint
+- `src/types.ml` — shared finding/value types
 
-- Use https://github.com/cryptosense/ocaml-zxcvbn
-- Learn this module
-- Create a program that asks for user input of string
-- output the entropy score of that string
+## Build
 
+1. Install dependencies (example using opam):
+   - `dune`
+   - `yojson`
+   - `yaml`
+2. Build:
+   - `dune build`
 
+## Run
+
+- Preferred wrapper (matches `./scanner ...` style):
+  - `./scanner path/to/file.imp`
+  - `./scanner path/to/config.json`
+  - `./scanner path/to/config.yaml`
+- Direct dune executable:
+  - `dune exec src/main.exe -- path/to/file.imp`
+- JSON output:
+  - `./scanner --json path/to/file.json`
+
+## Optional tuning flags
+
+- `--entropy-threshold <float>` (default `3.8`)
+- `--min-entropy-length <int>` (default `10`)
+
+Example:
+
+`./scanner --entropy-threshold 4.0 --min-entropy-length 12 config.yaml`
+
+## Exit codes
+
+- `0`: scan succeeded, no findings
+- `2`: scan succeeded, findings produced
+- `1`: parse/usage/runtime error

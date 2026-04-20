@@ -1,0 +1,5 @@
+service:
+  allow_insecure: true
+  debug: true
+credentials:
+  api_key: "sk-prod-ABCD1234xyzSECRET999"

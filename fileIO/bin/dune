@@ -1,4 +1,0 @@
-(executable
- (public_name fileIO)
- (name main)
- (libraries fileIO))

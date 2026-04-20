@@ -1,0 +1,10 @@
+{
+  "service": {
+    "debug": true,
+    "ssl_verify": false
+  },
+  "auth": {
+    "token": "ghp_9zzZZ11aaBB22ccDD33eeFF44",
+    "example": "test"
+  }
+}

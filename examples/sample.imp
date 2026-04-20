@@ -1,0 +1,4 @@
+db_password := "supersecret123"
+api_key := "sk-abc123xyz789secretkey"
+debug := true
+ssl_verify := false

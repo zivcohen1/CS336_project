@@ -1,4 +1,0 @@
-(executable
- (public_name entropy)
- (name main)
- (libraries entropy))
