@@ -152,6 +152,19 @@ Run:
 - `./scanner path/to/file.yaml`
 - `./scanner --json path/to/file.yaml`
 
+Run with a non-default policy:
+
+- `./scanner --policy path/to/my-policy.json path/to/file.yaml`
+- `./scanner --policy path/to/my-policy.json --json path/to/file.json`
+
+Example:
+
+- `./scanner --policy examples/policy.custom.json --json examples/sample.json`
+
+Test:
+
+- `./scanner examples/sample.json`
+
 ---
 
 ## Extensibility Notes

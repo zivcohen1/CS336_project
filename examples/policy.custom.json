@@ -1,0 +1,8 @@
+{
+  "entropy_threshold": 3.6,
+  "min_entropy_length": 8,
+  "ignored_values": ["test", "example", "local"],
+  "secret_patterns": ["client_secret", "private_key", "auth_token"],
+  "misconfig_true_keys": ["public_access", "anonymous_access", "allow_http"],
+  "misconfig_false_keys": ["mfa_enabled", "encryption_enabled", "cert_validation"]
+}
