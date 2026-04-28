@@ -10,6 +10,7 @@ A modular static scanner that parses source files into structured representation
 | --- | --- |
 | Ziv Cohen | Project Manager & Overview, Report, `policy.ml` |
 | Zaccery Tarver | Lead Requirements Designer, Entropy Researcher |
+| James Pazik | Parser Designer |
 
 ---
 
