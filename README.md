@@ -1,174 +1,256 @@
 # AST-Based Secret & Misconfiguration Scanner (OCaml)
 
-A modular static scanner that analyzes:
+A modular static scanner that parses source files into structured representations and detects hardcoded secrets, high-entropy strings, and insecure configurations.
 
-- IMP-Core style files (`.imp`)
-- JSON (`.json`)
-- YAML (`.yaml`, `.yml`)
+---
 
-It detects:
+## Team Members and Roles
 
+| Member | Role |
+| --- | --- |
+| Ziv Cohen | Project Manager & Overview, Report, `policy.ml` |
+| Zaccery Tarver | Lead Requirements Designer, Entropy Researcher |
+| James Pazik | Parser Designer |
+| Matthew Keller | Algorithm Designer & Scanner Developer |
+
+---
+
+## What This Tool Does
+
+The scanner parses configuration files and detects hardcoded secrets, high-entropy strings, and insecure settings. It supports scanning individual files or entire GitHub repositories.
+
+**How it works:**
+1. Parses input into structured data (AST/tree, not regex-only scanning)
+2. Applies context-aware rules based on key names and value types
+3. Computes Shannon entropy for candidate strings
+4. Produces findings with line number, issue type, key, risk, and recommendation
+
+**What it detects:**
 - Hardcoded secrets (`password`, `token`, `api_key`, etc.)
 - High-entropy strings (likely secrets)
 - Insecure configurations (`debug=true`, `ssl_verify=false`, `allow_insecure=true`)
 
----
+**Supported file types:** `.imp`, `.json`, `.yaml`, `.yml`
 
-## What this project does
-
-Given an input file (`.imp`, `.json`, `.yaml`, `.yml`), the scanner:
-
-1. Parses it into structured data (AST/tree, not regex-only scanning).
-2. Applies context-aware rules based on key names and value types.
-3. Computes Shannon entropy for candidate strings.
-4. Produces findings with line number, issue type, key, risk, and recommendation.
+**Supported scan modes:**
+- Single file: `./scanner config.json`
+- GitHub repository: `./scanner --github https://github.com/owner/repo`
 
 ---
 
-## Quick start
+## Prerequisites and Dependencies
 
-Build:
+- [opam](https://opam.ocaml.org/) (OCaml package manager)
+- OCaml >= 4.14
+- `dune` (build system)
+- `yojson` (JSON parsing)
+- `yaml` (YAML parsing)
 
-- `dune build`
+Install dependencies with opam:
 
-Run (text output):
-
-- `./scanner examples/sample.imp`
-- `./scanner examples/sample.json`
-- `./scanner examples/sample.yaml`
-
-Run (JSON output):
-
-- `./scanner --json examples/sample.yaml`
-
-Save output to file:
-
-- `./scanner --json examples/sample.yaml > results.json`
-
-## Architecture
-
-- `src/ast.ml` — IMP-Core AST (`Assign`, literals)
-- `src/parser.ml` — IMP parser with line tracking
-- `src/jsonScanner.ml` — recursive JSON traversal with path extraction
-- `src/yamlScanner.ml` — recursive YAML traversal with path extraction
-- `src/entropy.ml` — Shannon entropy implementation
-- `src/rules.ml` — context-aware security/misconfiguration rules and thresholds
-- `src/policy.ml` — loads and validates custom policy JSON, then maps it to runtime rule config
-- `src/scanner.ml` — orchestrates parser/scanners + rule engine
-- `src/report.ml` — text and JSON reporting
-- `src/main.ml` — CLI entrypoint
-- `src/types.ml` — shared finding/value types
+```sh
+opam install dune yojson yaml
+```
 
 ---
 
-## Build
+## Build Instructions
 
-Install dependencies (example with opam):
-
-- `dune`
-- `yojson`
-- `yaml`
-
-Then:
-
-- `dune build`
+```sh
+dune build
+```
 
 ---
 
-## CLI usage
+## How to Run the Tool
 
-Syntax:
+**CLI syntax (single file):**
 
-- `./scanner [--json] [--policy <file.json>] [--entropy-threshold <float>] [--min-entropy-length <int>] <target-file>`
+```sh
+./scanner [--json] [--policy <file.json>] [--entropy-threshold <float>] [--min-entropy-length <int>] <target-file>
+```
 
-Important:
+**CLI syntax (GitHub repository):**
 
-- Do **not** use `--yaml` or `--imp` flags.
-- File type is auto-detected from extension.
+```sh
+./scanner [--json] [--policy <file.json>] [--entropy-threshold <float>] [--min-entropy-length <int>] --github <github-url>
+```
 
-## Run
+File type is auto-detected from extension — do **not** use `--yaml` or `--imp` flags.
 
-- Preferred wrapper (macOS/Linux, matches `./scanner ...` style):
-  - `./scanner path/to/file.imp`
-  - `./scanner path/to/config.json`
-  - `./scanner path/to/config.yaml`
-- Windows `cmd` wrapper:
-  - `scanner.cmd path\\to\\file.imp`
-  - `scanner.cmd path\\to\\config.json`
-  - `scanner.cmd path\\to\\config.yaml`
-- Direct cross-platform dune command:
-  - `opam exec -- dune exec src/main.exe -- path/to/file.imp`
-- Direct dune executable:
-  - `dune exec src/main.exe -- path/to/file.imp`
-- JSON output:
-  - `./scanner --json path/to/file.json`
-  - `scanner.cmd --json path\\to\\file.json`
+### Single File Scanning
+
+**macOS/Linux:**
+
+```sh
+./scanner path/to/file.imp
+./scanner path/to/config.json
+./scanner path/to/config.yaml
+./scanner --json path/to/file.json
+```
+
+**Windows:**
+
+```sh
+scanner.cmd path\to\file.imp
+scanner.cmd path\to\config.json
+scanner.cmd --json path\to\file.json
+```
+
+**Direct dune (cross-platform):**
+
+```sh
+opam exec -- dune exec src/main.exe -- path/to/file.imp
+dune exec src/main.exe -- path/to/file.imp
+```
+
+**Save JSON output to file:**
+
+```sh
+./scanner --json examples/sample.yaml > results.json
+```
+
+### GitHub Repository Scanning
+
+Scan entire GitHub repositories for secrets and misconfigurations:
+
+```sh
+./scanner --github https://github.com/owner/repo --policy policy.json
+./scanner --json --github https://github.com/owner/repo > findings.json
+```
+
+**What it does:**
+- Clones the repo to a temporary directory
+- Scans all `.json`, `.yaml`, `.yml`, `.imp` files recursively
+- Skips common unneeded directories (`.git`, `node_modules`, `__pycache__`, etc.)
+- Reports findings with file paths relative to repo root
+- Automatically cleans up temporary files
+
+**Private Repositories:**
+
+Set your GitHub token for private repo access:
+```sh
+export GITHUB_TOKEN=your_github_token
+./scanner --github https://github.com/owner/private-repo --policy policy.json
+```
+
+Or use SSH URLs if you have SSH keys configured:
+```sh
+./scanner --github git@github.com:owner/private-repo.git --policy policy.json
+```
+
+**Example output (showing repository-relative paths):**
+
+```json
+[
+  {
+    "category": "SECRET",
+    "severity": "High",
+    "issue_type": "Hardcoded API key",
+    "key": "api_key",
+    "path": "config/production.json",
+    "line": 42,
+    "source": "json"
+  }
+]
+```
+
+### Custom Policy File
+
+Define custom rules in a JSON policy file and apply to any scan:
+
+```sh
+./scanner --policy custom-policy.json examples/sample.json
+./scanner --json --github https://github.com/owner/repo --policy custom-policy.json
+```
+
+**Supported policy fields:**
+- `entropy_threshold` — Minimum Shannon entropy for flagging high-entropy values (default: 3.8)
+- `min_entropy_length` — Minimum string length before entropy checks (default: 10)
+- `ignored_values` — Values to skip (case-insensitive)
+- `secret_patterns` — Extra key names to treat as secrets
+- `misconfig_true_keys` — Keys flagged when set to `true`
+- `misconfig_false_keys` — Keys flagged when set to `false`
+
+See [POLICY_GUIDE.md](POLICY_GUIDE.md) for templates and examples.
+
+### Optional Tuning Flags
+
+Adjust sensitivity on any scan:
+
+```sh
+./scanner --entropy-threshold 4.0 --min-entropy-length 12 config.yaml
+./scanner --json --github https://github.com/owner/repo --entropy-threshold 4.0
+```
 
 ---
 
-## Custom Policy File
+## How to Run Tests
 
-You can provide a custom JSON policy file to extend scanner behavior:
-
-- `--policy <file.json>`
-
-Quick examples (non-default policy):
-
-- JSON:
-  - `./scanner --policy examples/policy.custom.json --json examples/sample.json`
-- YAML:
-  - `./scanner --policy examples/policy.custom.json examples/sample.yaml`
-  - `./scanner --policy examples/policy.custom.json --json examples/sample.yaml`
-- IMP:
-  - `./scanner --policy examples/policy.custom.json examples/sample.imp`
-  - `./scanner --policy examples/policy.custom.json --json examples/sample.imp`
-
-Important:
-
-- Do **not** use `--yaml` or `--imp` flags.
-- The scanner auto-detects type from the file extension (`.json`, `.yaml`, `.yml`, `.imp`).
-
-Supported policy fields:
-
-- `entropy_threshold` (number)
-- `min_entropy_length` (integer)
-- `ignored_values` (string array)
-- `secret_patterns` (string array): additional key patterns treated as secret-like
-- `misconfig_true_keys` (string array): keys flagged when set to `true`
-- `misconfig_false_keys` (string array): keys flagged when set to `false`
-
-Example:
-
-- `scanner.cmd --policy examples\\policy.json examples\\sample.yaml`
-- `opam exec -- dune exec src/main.exe -- --policy examples/policy.json examples/sample.yaml`
-
-See [POLICY_GUIDE.md](POLICY_GUIDE.md) for a full policy authoring guide and template workflow.
+```sh
+dune runtest
+```
 
 ---
 
-## Detection details
+## Example Commands with Expected Output
 
-- Secret detection is key-aware (e.g., names containing `password`, `apikey`, `token`, `secret`).
-- Misconfiguration detection includes:
-  - `debug = true`
-  - `ssl_verify = false`
-  - `allow_insecure = true`
-  - plus custom keys from policy
-- Entropy detection checks long-enough strings and flags likely secrets.
-- False-positive reduction includes ignored placeholder values and minimum length thresholds.
+**Scan a YAML config file (text output):**
 
-## Optional tuning flags
+```text
+./scanner examples/sample.yaml
 
-- `--entropy-threshold <float>` (default `3.8`)
-- `--min-entropy-length <int>` (default `10`)
+[SECRET] password at line 3
+  Key:    password
+  Path:   config.password
+  Risk:   Hardcoded credential may be exposed in version control
+  Fix:    Use an environment variable or secrets manager
 
-Example:
+[MISCONFIG] debug at line 7
+  Key:    debug
+  Path:   config.debug
+  Risk:   Debug mode enabled in configuration
+  Fix:    Set debug to false in production
 
-`./scanner --entropy-threshold 4.0 --min-entropy-length 12 config.yaml`
+2 finding(s) — exit code 2
+```
+
+**Scan a JSON file with JSON output:**
+
+```text
+./scanner --json examples/sample.json
+
+[
+  {
+    "category": "SECRET",
+    "severity": "HIGH",
+    "issue_type": "hardcoded_secret",
+    "key": "api_key",
+    "path": "app.api_key",
+    "line": 5,
+    "source": "examples/sample.json",
+    "risk": "Hardcoded API key may be exposed",
+    "recommendation": "Move to environment variable",
+    "explanation": "Key name matches secret pattern"
+  }
+]
+```
+
+**Scan with a custom policy:**
+
+```sh
+./scanner --policy examples/policy.json --json examples/sample.yaml
+```
+
+**Scan an IMP file:**
+
+```sh
+./scanner examples/sample.imp
+```
 
 ---
 
-## Output format
+## Output Format
 
 Each finding includes:
 
@@ -183,20 +265,37 @@ Each finding includes:
 - `recommendation`
 - `explanation`
 
-Text mode prints human-readable blocks.
-JSON mode prints an array of structured finding objects.
+---
 
-## Exit codes
+## Exit Codes
 
-- `0`: scan succeeded, no findings
-- `2`: scan succeeded, findings produced
-- `1`: parse/usage/runtime error
+| Code | Meaning |
+| --- | --- |
+| `0` | Scan succeeded, no findings |
+| `2` | Scan succeeded, findings produced |
+| `1` | Parse/usage/runtime error |
 
 ---
 
-## Common mistakes
+## Architecture
 
-- Passing unsupported flags like `--yaml` (not needed).
+- `src/ast.ml` — IMP-Core AST (`Assign`, literals)
+- `src/parser.ml` — IMP parser with line tracking
+- `src/jsonScanner.ml` — recursive JSON traversal with path extraction
+- `src/yamlScanner.ml` — recursive YAML traversal with path extraction
+- `src/entropy.ml` — Shannon entropy implementation
+- `src/rules.ml` — context-aware security/misconfiguration rules and thresholds
+- `src/policy.ml` — loads and validates custom policy JSON, maps to runtime rule config
+- `src/scanner.ml` — orchestrates parser/scanners + rule engine
+- `src/report.ml` — text and JSON reporting
+- `src/main.ml` — CLI entrypoint
+- `src/types.ml` — shared finding/value types
+
+---
+
+## Common Mistakes
+
+- Passing unsupported flags like `--yaml` (not needed — type is auto-detected).
 - Using unsupported file extensions.
 - Policy file not valid JSON or wrong field types.
 

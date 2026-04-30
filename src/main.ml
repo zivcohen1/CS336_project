@@ -4,7 +4,7 @@ type output_mode =
 
 let usage () =
   Printf.eprintf
-    "Usage: scanner [--json] [--policy <file.json>] [--entropy-threshold <float>] [--min-entropy-length <int>] <file>\n";
+    "Usage: scanner [--json] [--policy <file.json>] [--entropy-threshold <float>] [--min-entropy-length <int>] [--github <url>] <file>\n";
   exit 1
 
 let () =
@@ -13,6 +13,7 @@ let () =
   let min_entropy_length = ref None in
   let policy_file = ref None in
   let target_file = ref None in
+  let github_url = ref None in
 
   let rec parse_args i =
     if i >= Array.length Sys.argv then ()
@@ -35,6 +36,10 @@ let () =
           if i + 1 >= Array.length Sys.argv then usage ();
           if Option.is_some !policy_file then usage () else policy_file := Some Sys.argv.(i + 1);
           parse_args (i + 2)
+      | "--github" ->
+          if i + 1 >= Array.length Sys.argv then usage ();
+          if Option.is_some !github_url then usage () else github_url := Some Sys.argv.(i + 1);
+          parse_args (i + 2)
       | arg when String.starts_with ~prefix:"-" arg -> usage ()
       | file ->
           if Option.is_some !target_file then usage () else target_file := Some file;
@@ -43,7 +48,15 @@ let () =
 
   parse_args 1;
 
-  let file = match !target_file with Some f -> f | None -> usage () in
+  (* Check that either --github or file is provided, but not both *)
+  let (is_github, scan_target) = match (!github_url, !target_file) with
+    | (Some url, None) -> (true, url)
+    | (None, Some f) -> (false, f)
+    | (Some _, Some _) -> 
+        Printf.eprintf "Error: Cannot specify both --github and a file\n";
+        usage ()
+    | (None, None) -> usage ()
+  in
 
   let config_from_policy : Rules.config =
     match !policy_file with
@@ -64,7 +77,14 @@ let () =
     }
   in
 
-  match Scanner.scan_file ~config file with
+  let scan_result = 
+    if is_github then
+      Git_utils.fetch_and_scan_github ~config ~github_url:scan_target ~policy_file:!policy_file
+    else
+      Scanner.scan_file ~config scan_target
+  in
+
+  match scan_result with
   | Error msg ->
       prerr_endline msg;
       exit 1
